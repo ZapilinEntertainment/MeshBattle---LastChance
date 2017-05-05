@@ -4,10 +4,9 @@ using UnityEngine;
 
 public class PoolMaster : MonoBehaviour
 	{
-	const int WRECKS_MAX_COUNT = 200;
+	const int WRECKS_MAX_COUNT = 50;
 
-	public ParticleSystem explosionPrefab;
-	public GameObject wreckPrefab;
+	GameObject wreckPrefab;
 	ParticleSystem explosionEmitter;
 
 	List<Destructible> wrecks;
@@ -15,7 +14,8 @@ public class PoolMaster : MonoBehaviour
 	void Awake() 
 	{
 		GameMaster.pool = this;
-		explosionEmitter = Instantiate (explosionPrefab) as ParticleSystem;
+		explosionEmitter = Instantiate (Resources.Load<ParticleSystem>("Prefs/explosion")) as ParticleSystem;
+		wreckPrefab = Instantiate (Resources.Load<GameObject>("Prefs/wreckBlock")) as GameObject;
 	}
 
 	public void ExplosionAt(Vector3 position, int size) 
@@ -27,9 +27,7 @@ public class PoolMaster : MonoBehaviour
 	public void DestructionAt (BoxCollider collider) 
 	{
 		float mgn = collider.size.magnitude;
-		return; //TESTMODE
-		explosionEmitter.transform.position = collider.transform.position;
-		explosionEmitter.Emit((int)(mgn));
+		ExplosionAt(collider.transform.position, (int)(mgn));
 
 		if (mgn < 5) return;
 
@@ -47,7 +45,7 @@ public class PoolMaster : MonoBehaviour
 				{
 					wrecks = new List<Destructible>();
 					GameObject wreck = Instantiate (wreckPrefab, collider.transform.position, collider.transform.rotation) as GameObject;
-					wreck.transform.localScale = collider.size;
+				    wreck.name = collider.gameObject.name + "_wreck";
 					d = 	wreck.AddComponent <Destructible>();
 					wrecks.Add (d);
 				}
@@ -57,6 +55,10 @@ public class PoolMaster : MonoBehaviour
 				}
 			}
 
+
+		d.transform.position = collider.transform.position;
+		d.transform.rotation = collider.transform.rotation;
+		d.transform.localScale = collider.size;
 		d.SetData (mgn, 0, 0, mgn, true);
 		}
 

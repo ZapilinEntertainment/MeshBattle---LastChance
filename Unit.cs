@@ -12,8 +12,10 @@ public class Unit : Destructible {
 	public float speedGoal = 0;
 	public float maxSpeed = 10;
 	public float rotationSpeed = 25;
+	public bool usePooling = true;
 	protected float contactRadius;
 	Vector3 raycastPoint;
+	Rigidbody rbody;
 
 	Quaternion rotateTo;
 	Order myOrder;
@@ -21,6 +23,11 @@ public class Unit : Destructible {
 	void Awake () 
 	{
 		if (mainCollider == null) mainCollider = GetComponent<BoxCollider>();
+		rbody = GetComponent<Rigidbody>();
+		hp = maxHp;
+		armor = maxArmor;
+		pooling = usePooling;
+
 		raycastPoint = new Vector3(0, mainCollider.center.y, mainCollider.center.z + mainCollider.size.z/2);
 		contactRadius = mainCollider.size.magnitude * 2;
 		if (myOrder == null) myOrder = new Order(OrderType.Stand);
@@ -39,7 +46,6 @@ public class Unit : Destructible {
 			break;
 		}
 			
-		PhysicCalculation (t);
 		if (rotateTo != transform.rotation) transform.rotation = Quaternion.RotateTowards (transform.rotation, rotateTo, rotationSpeed*t);
 		if (speedGoal > maxSpeed) speedGoal = maxSpeed; if (speedGoal < 0) speedGoal = 0;
 		if (speedGoal > speed) {
@@ -52,24 +58,23 @@ public class Unit : Destructible {
 				if (speed < speedGoal) speed = speedGoal;
 			}
 		}
+			
+		if (speed>0) 	transform.Translate(Vector3.forward*speed*t);
 
-		if (speed>0) 
-		{
-		RaycastHit rh;
-		if (Physics.SphereCast (transform.TransformPoint(raycastPoint), mainCollider.size.x/2.0f,transform.forward, out rh, speed*t)) 
-		{
-			Destructible dc = rh.collider.transform.root.gameObject.GetComponent<Destructible>();
-			if (dc != null) { 
-				dc.ApplyPhysics (transform.forward*speed*physicsMass, transform.position); 
-				ApplyPhysics (-transform.forward * speed * dc.GetMass(), transform.position);
-			}
-			else 
-			{
-				ApplyPhysics(-transform.forward* speed, transform.position);
-			}
-		}
-			transform.Translate(Vector3.forward*speed*t);
-		}
+	}
+		
+	public void Destruction () 
+	{
+		if (destroyed) return; else destroyed=true;
+		if (myRenderers) myRenderers.SetActive(false);
+		transform.position = Vector3.zero;
+		speed = 0;
+		speedGoal = 0;
+		rotateTo = transform.rotation;
+		myOrder = new Order(OrderType.Stand);
+
+		if (mainCollider != null) GameMaster.pool.DestructionAt (mainCollider);
+		if (!pooling) Destroy(gameObject); else gameObject.SetActive(false);
 	}
 
 	public void ReceiveOrder(Order order) 
