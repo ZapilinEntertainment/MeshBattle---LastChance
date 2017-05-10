@@ -4,18 +4,23 @@ using UnityEngine;
 
 public class PoolMaster : MonoBehaviour
 	{
-	const int WRECKS_MAX_COUNT = 50;
+	const int WRECKS_MAX_COUNT = 500;
+	const int WRECK_BLOCK_SCALE = 1;
+	const float WRECK_MASS_COEFFICIENT = 0.1f;
+	const float WRECK_SPAWN_CHANCE = 0.3f;
 
+	int lastForcedWreck = 0;
 	GameObject wreckPrefab;
 	ParticleSystem explosionEmitter;
-
-	List<Destructible> wrecks;
+	Destructible[] wrecks;
 
 	void Awake() 
 	{
 		GameMaster.pool = this;
 		explosionEmitter = Instantiate (Resources.Load<ParticleSystem>("Prefs/explosion")) as ParticleSystem;
 		wreckPrefab = Instantiate (Resources.Load<GameObject>("Prefs/wreckBlock")) as GameObject;
+
+		wrecks = new Destructible[WRECKS_MAX_COUNT];
 	}
 
 	public void ExplosionAt(Vector3 position, int size) 
@@ -23,45 +28,67 @@ public class PoolMaster : MonoBehaviour
 		explosionEmitter.transform.position = position;
 		explosionEmitter.Emit(size);
 	}
+
+	public void PiecesAt (Vector3 position, int size) {}
 		
 	public void DestructionAt (BoxCollider collider) 
 	{
+		Vector3 pos = collider.transform.position;
 		float mgn = collider.size.magnitude;
-		ExplosionAt(collider.transform.position, (int)(mgn));
+		int a = (int)collider.size.x;
+		int b = (int)collider.size.y;
+		int c = (int)collider.size.z;
+		ExplosionAt(pos, (int)(mgn));
 
-		if (mgn < 5) return;
+		if (a < WRECK_BLOCK_SCALE || b < WRECK_BLOCK_SCALE || c < WRECK_BLOCK_SCALE) {PiecesAt(pos, (int)mgn);return;}
 
+		int i,j,k;
+		for (i  = 0; i < a; i++) {
+			for ( j = 0 ; j< b; j++) {
+				for (k = 0; k<c;k++) {
+					if (UnityEngine.Random.value < WRECK_SPAWN_CHANCE) WreckAt(pos + new Vector3(i - a/2, j - b/2, k - c/2) * WRECK_BLOCK_SCALE) ;
+				}
+			}
+		}
+			
+		}
+
+	private void WreckAt( Vector3 pos) {
+		int searchedIndex = -1;
 		Destructible d = null;
-		if (wrecks != null) {
-			foreach (Destructible f in wrecks)
+		for (int i = 0; i < wrecks.Length; i++)
+		{
+			if (wrecks[i] == null) {
+				GameObject wreck = Instantiate (wreckPrefab, pos, Quaternion.identity) as GameObject;
+				wreck.name = "wreck"+i.ToString();
+				wreck.transform.localScale = Vector3.one * WRECK_BLOCK_SCALE;
+				//wreck.GetComponent<Rigidbody>().mass = WRECK_BLOCK_SCALE*WRECK_BLOCK_SCALE*WRECK_BLOCK_SCALE * WRECK_MASS_COEFFICIENT;
+				 d = 	wreck.GetComponent <Destructible>();
+				wrecks[i] = d;
+				searchedIndex = i;
+				break;
+			}
+			else
 			{
-				if (!f.gameObject.activeSelf) {d = f; break;}
-			}
-		}
-		else wrecks = new List<Destructible>();
-
-			if (d==null)	{
-				if (wrecks.Count < WRECKS_MAX_COUNT)
+				if ( !wrecks[i].gameObject.activeSelf ) 
 				{
-					wrecks = new List<Destructible>();
-					GameObject wreck = Instantiate (wreckPrefab, collider.transform.position, collider.transform.rotation) as GameObject;
-				    wreck.name = collider.gameObject.name + "_wreck";
-					d = 	wreck.AddComponent <Destructible>();
-					wrecks.Add (d);
-				}
-				else 
-				{
-					d = wrecks[0];
+					 d = wrecks[i];
+					d.Recreate();
+					searchedIndex = i;
+					break;
 				}
 			}
-
-
-		d.transform.position = collider.transform.position;
-		d.transform.rotation = collider.transform.rotation;
-		d.transform.localScale = collider.size;
-		d.SetData (mgn, 0, 0, mgn, true);
 		}
-
+		if ( searchedIndex == -1) 
+		{
+			d = wrecks[lastForcedWreck];
+			searchedIndex = lastForcedWreck;
+			lastForcedWreck++;
+			if (lastForcedWreck >= wrecks.Length) lastForcedWreck = 0;
+			d.Recreate();
+		}
+		wrecks[searchedIndex].transform.position = pos;
+	}
 	}
 
 

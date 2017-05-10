@@ -2,6 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum WeaponType {
+	MainCaliber,
+	Raycaster,
+	Autogun
+}
+
 public class Weapon : MonoBehaviour {
 
 	const float MIN_ANGLE_FOR_FIRE = 1;
@@ -9,6 +15,7 @@ public class Weapon : MonoBehaviour {
 	public Transform[] guns;
 	public MaterialPurpose raysMaterialType;
 	public SpritePurpose startSpriteType;
+	public WeaponType weaponType;
 	public float maxDistance;
 	public float maxAngle;
 	public float reloadTime;
@@ -17,12 +24,17 @@ public class Weapon : MonoBehaviour {
 	public float pointingSpeed;
 	public float shotTime;
 
+	public int centralPos;
+	public Vector3 weaponDirection;
+
 	bool firing = false;
 	bool ready = true;
 	bool allGunsPrepared = true;
+	bool authomatic = false;
+	bool working = false;
 	float firingTimeLeft = 0;
 	float reloadingTimeLeft = 0;
-	Destructible target;
+	public Destructible target;
 	Controller myController;
 
 	Vector3[] startDirections;
@@ -33,18 +45,21 @@ public class Weapon : MonoBehaviour {
 	void Awake() 
 	{
 		int count = guns.Length;
-		if (count == 0) Destroy(this);
-		else {
-			startDirections = new Vector3[count];
-			rays = new LineRenderer[count];
-			startSplashes = new GameObject[count];
-			endSplashes = new GameObject[count];
+		if (count == 0) 	{Destroy(this);return;}
+		centralPos = guns.Length/2;
+		weaponDirection = guns[centralPos].forward;
 
-			Material raysMaterial = GameMaster.storage.GetMaterial(raysMaterialType);
-			Sprite startSprite = GameMaster.storage.GetSprite(startSpriteType);
+		if (weaponType == WeaponType.Autogun) authomatic = true;
+		startDirections = new Vector3[count];
+		rays = new LineRenderer[count];
+		startSplashes = new GameObject[count];
+		endSplashes = new GameObject[count];
 
-			for (int i = 0; i < count; i++)
-			{
+		Material raysMaterial = GameMaster.storage.GetMaterial(raysMaterialType);
+		Sprite startSprite = GameMaster.storage.GetSprite(startSpriteType);
+
+		for (int i = 0; i < count; i++)
+		{
 				startDirections[i] = transform.InverseTransformDirection(guns[i].transform.forward);
 
 				rays[i] = guns[i].gameObject.AddComponent<LineRenderer>();
@@ -73,20 +88,27 @@ public class Weapon : MonoBehaviour {
 				rays[i].enabled = false;
 				startSplashes[i].SetActive(false);
 				endSplashes[i].SetActive(false);
-			}
 		}
 
-		myController  = transform.root.gameObject.GetComponent<Controller>();
 
 	}
 
 	void Update() 
 	{
-		if (GameMaster.pause) return;
+		if (GameMaster.pause ) return;
+		if (!working) {
+			myController  = transform.root.gameObject.GetComponent<Controller>();
+			if (myController != null) {myController.AddWeapon(this);working = true;}
+			return;
+		}
 
 		if (target != null) 
 		{
 			if (!target.gameObject.activeSelf) {target = null; firing = false;}
+		}
+		else 
+		{
+			if (authomatic&&ready) target = myController.GetEnemy(this);
 		}
 
 		float t = Time.deltaTime;
@@ -136,7 +158,7 @@ public class Weapon : MonoBehaviour {
 				{
 					PointGunOnObject(i, target.transform, t);
 				}
-				if (Vector3.Angle (guns[guns.Length/2].forward, target.transform.position - guns[guns.Length/2].position) < MIN_ANGLE_FOR_FIRE)
+				if (Vector3.Angle (guns[centralPos].forward, target.transform.position - guns[centralPos].position) < MIN_ANGLE_FOR_FIRE)
 				{
 					ActivateGuns();
 				}
@@ -182,7 +204,7 @@ public class Weapon : MonoBehaviour {
 
 		if (t != null) 
 		{
-			Vector3 inpos = guns[guns.Length/2].InverseTransformPoint (t.transform.position);
+			Vector3 inpos = transform.InverseTransformPoint (t.transform.position);
 			if (inpos.z > 0 && Vector3.Angle(Vector3.forward, inpos) < maxAngle) target = t;
 			return;
 		}
@@ -207,7 +229,7 @@ public class Weapon : MonoBehaviour {
 
 	public bool IsReady () {return ready;}
 
-	public  void ActivateGuns() 
+	public  void ActivateGuns() ///raycasting
 	{
 		firingTimeLeft = shotTime;
 		Vector3 endPos;

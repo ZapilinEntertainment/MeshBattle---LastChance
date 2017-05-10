@@ -4,23 +4,29 @@ using UnityEngine;
 
 public class FleetCommand : MonoBehaviour {
 	const float SCAN_TICK = 1;
+	const float SPAWN_RATIO = 10;
+	const float GATES_RADIUS = 100;
 
 	int number;
+	int shipsCount = 0;
+	int lastForcedFrigate = 0;
+	GameObject[] frigates;
+	public GameObject frigatePrefab;
 	List<Transform> enemies;
-	float t;
+	public Transform gates;
+	float t , tspawn;
 
-	void Awake () {
-		number = GameMaster.AddFleetCommand(this);
+	void Awake() {
+		frigates = new GameObject[GameMaster.frigatesLimit];
 	}
 
 	void Update() 
 	{
+		tspawn -= Time.deltaTime;
+		if (tspawn <= 0) {SpawnFrigate(); tspawn = SPAWN_RATIO;}
+
 		t -= Time.deltaTime;
 		if (t <= 0) {Scan(); t= SCAN_TICK;}
-		foreach (Transform t in enemies) 
-		{
-			if (t == null) enemies.Remove(t);
-		}
 	}
 
 	public List<Transform> GetEnemiesInRadius(Vector3 pos, float radius) 
@@ -94,18 +100,84 @@ public class FleetCommand : MonoBehaviour {
 
 	protected void Scan() 
 	{
-		enemies = new List<Transform>();
+		if (enemies == null) enemies = new List<Transform>();
+		else enemies.Clear();
+		shipsCount = 0;
 		for (int i = 0; i< 4; i++)
 		{
-			if (i == number) continue;
 			GameObject[] go = GameObject.FindGameObjectsWithTag("Command"+i.ToString());
-			foreach (GameObject g in go)
-			{
-				if (g.activeSelf == true && g.GetComponent<Destructible>() != null) 
+			if (i == number ) {
+				foreach (GameObject g in go)
 				{
-					enemies.Add( g.transform );
+					if (g.activeSelf == true && g.GetComponent<Destructible>() != null) shipsCount++;
+				}
+			}
+			else {
+				foreach (GameObject g in go)
+				{
+					if (g.activeSelf == true && g.GetComponent<Destructible>() != null) 
+					{
+						enemies.Add( g.transform );
+					}
 				}
 			}
 		}
+	}
+
+	public void SetNumber(int x) { 
+		number = x;
+		gameObject.tag = "Command"+x.ToString();
+	}
+
+	void SpawnFrigate() 
+	{
+		if (shipsCount >= GameMaster.frigatesLimit) return;
+		int trials = 5;
+		float size = frigatePrefab.GetComponent<Destructible>().mainCollider.size.magnitude;
+		bool spawnAccepted = false;
+		Collider[] cds;
+		Vector3 spawnPos = gates.position;
+		for (int k = 0; k< trials; k++)
+		{
+			spawnPos = gates.position + Random.onUnitSphere * GATES_RADIUS;
+			cds = Physics.OverlapSphere(spawnPos, size);
+			if (cds.Length == 0) {spawnAccepted = true; break;}
+		}
+		if ( !spawnAccepted ) return;
+
+		int foundIndex = -1;
+		GameObject frigate = null;
+		for (int i = 0; i < frigates.Length; i++)
+		{
+			if ( frigates[i] == null ) {
+				foundIndex = i;
+				frigate = Instantiate(frigatePrefab, spawnPos, gates.rotation) as GameObject;
+				frigate.name = "c"+number.ToString()+"_frigate"+i.ToString();
+				frigate.tag = "Command"+number.ToString();
+				frigate.GetComponent<Controller>().SetFleetCommand(this);
+				frigates[i] = frigate;			
+				break;
+			}
+			else {
+				if (frigates[i].activeSelf == false) 
+				{
+					foundIndex = i;
+					frigate = frigates[i];
+					frigate.GetComponent<Destructible>().Recreate();
+					break;
+				}
+			}
+		}
+
+		if (foundIndex == -1) {
+			frigate = frigates[lastForcedFrigate];
+			frigate.GetComponent<Destructible>().Recreate();
+			lastForcedFrigate++;
+			if (lastForcedFrigate >= frigates.Length) lastForcedFrigate = 0;
+		}
+			
+		frigate.transform.position = spawnPos;
+		frigate.transform.rotation = gates.rotation;
+		frigate.SetActive(true);
 	}
 }

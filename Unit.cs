@@ -13,12 +13,9 @@ public class Unit : Destructible {
 	public float maxSpeed = 10;
 	public float rotationSpeed = 25;
 	public bool usePooling = true;
-	protected float contactRadius;
-	Vector3 raycastPoint;
 	Rigidbody rbody;
 
 	Quaternion rotateTo;
-	Order myOrder;
 
 	void Awake () 
 	{
@@ -27,10 +24,6 @@ public class Unit : Destructible {
 		hp = maxHp;
 		armor = maxArmor;
 		pooling = usePooling;
-
-		raycastPoint = new Vector3(0, mainCollider.center.y, mainCollider.center.z + mainCollider.size.z/2);
-		contactRadius = mainCollider.size.magnitude * 2;
-		if (myOrder == null) myOrder = new Order(OrderType.Stand);
 	}
 
 	void Update ()
@@ -38,13 +31,6 @@ public class Unit : Destructible {
 		if (GameMaster.pause) return;
 
 		float t = Time.deltaTime;
-
-		switch (myOrder.type)
-		{
-		case OrderType.Stand:
-			if (speedGoal != 0) speedGoal = 0;
-			break;
-		}
 			
 		if (rotateTo != transform.rotation) transform.rotation = Quaternion.RotateTowards (transform.rotation, rotateTo, rotationSpeed*t);
 		if (speedGoal > maxSpeed) speedGoal = maxSpeed; if (speedGoal < 0) speedGoal = 0;
@@ -60,7 +46,18 @@ public class Unit : Destructible {
 		}
 			
 		if (speed>0) 	transform.Translate(Vector3.forward*speed*t);
-
+		if (Vector3.Distance (transform.position, Vector3.zero) > GameMaster.mapRadius) Destruction();
+		else {
+			if (useTimer) 
+			{
+				timer -= Time.deltaTime;
+				if (timer<=0) {
+					timer = 0;
+					useTimer = false;
+					Destruction();
+				}
+			}
+		}
 	}
 		
 	public void Destruction () 
@@ -71,25 +68,20 @@ public class Unit : Destructible {
 		speed = 0;
 		speedGoal = 0;
 		rotateTo = transform.rotation;
-		myOrder = new Order(OrderType.Stand);
 
 		if (mainCollider != null) GameMaster.pool.DestructionAt (mainCollider);
 		if (!pooling) Destroy(gameObject); else gameObject.SetActive(false);
 	}
-
-	public void ReceiveOrder(Order order) 
-	{
-		myOrder = order;
-	}
+		
 
 	private void MoveTo(Vector3 point) 
 	{
 		Vector3 goalDirection = point - transform.position;
 		float distance = goalDirection.magnitude;
 		float angle = Vector3.Angle(transform.forward,goalDirection);
-		if (distance > contactRadius + acceleration)
+		if (distance > acceleration)
 		{
-			if (angle < MOVEMENT_ANGLE_LIMIT && speed*speed/2/acceleration<distance-contactRadius)  speedGoal = maxSpeed;  else speedGoal = 0;
+			if (angle < MOVEMENT_ANGLE_LIMIT && speed*speed/2/acceleration<distance)  speedGoal = maxSpeed;  else speedGoal = 0;
 		if (angle > ANGLE_THRESHOLD) 	rotateTo = Quaternion.LookRotation(goalDirection,transform.TransformDirection(Vector3.up));
 	    }
 		else speedGoal = 0;

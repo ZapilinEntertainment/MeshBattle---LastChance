@@ -12,12 +12,16 @@ public class Controller : MonoBehaviour {
 	float t;
 	FleetCommand myFleetCommand;
 	List<Weapon> weapons;
+
+
 	void Awake () {
-		
+		enemies = new List<Transform>();
 	}
 
 	void Update () {
-		if (periodicScan)
+		if (GameMaster.pause) return;
+
+		if (periodicScan && myFleetCommand != null)
 		{
 			t -= Time.deltaTime;
 			if (t <= 0) {
@@ -33,5 +37,45 @@ public class Controller : MonoBehaviour {
 			weapons = new List<Weapon>();
 		}
 		weapons.Add(w);
+		if (w.weaponType == WeaponType.Autogun) periodicScan = true;
+	}
+
+	public Destructible GetEnemy(Weapon w)
+	{
+		if (enemies == null || enemies.Count == 0) return null;
+		Vector3 weaponPosition = w.guns[w.centralPos].position;
+		Vector3 weaponDirection = transform.TransformDirection(w.weaponDirection);
+		float dist = 0;
+		float angle = 0;
+		float minDist = w.maxDistance;
+		float minAngle = 180;
+		Destructible target = null;
+			foreach (Transform t in enemies) 
+			{
+			angle = Vector3.Angle( weaponDirection, t.position - weaponPosition );
+			dist = Vector3.Distance (t.position, weaponPosition);
+				if (angle < minAngle) 
+				{
+					minAngle = angle;
+					target = t.GetComponent<Destructible>();
+					minDist = dist;
+				}
+				else {
+					if (angle == minAngle) {
+						if (dist < minDist) 
+						{
+							minAngle = angle;
+							target = t.GetComponent<Destructible>();
+							minDist = dist;
+						}
+					}
+				}
+			}
+		return target;
+	}
+
+	public void SetFleetCommand(FleetCommand fc) 
+	{
+		myFleetCommand = fc;
 	}
 }

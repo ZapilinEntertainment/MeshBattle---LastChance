@@ -5,11 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(BoxCollider))]
 public class Destructible : MonoBehaviour {
 
-	const float PHYSIC_COEFFICIENT = 0.05f;
-
-	public float hp;
+	 protected float hp;
 	public float maxHp;
-	public float armor;
+	protected float armor;
 	public float maxArmor;
 	public float armorCoefficient;
 	protected bool destroyed;
@@ -17,8 +15,8 @@ public class Destructible : MonoBehaviour {
 	public BoxCollider mainCollider;
 	public GameObject myRenderers;
 	protected bool pooling;
-
-	public float setMass;
+	protected bool useTimer = false;
+	protected float timer = 0;
 
 	public Destructible () 
 	{
@@ -45,7 +43,19 @@ public class Destructible : MonoBehaviour {
 
 	void Update () 
 	{
+		if (GameMaster.pause) return;
 		if (Vector3.Distance (transform.position, Vector3.zero) > GameMaster.mapRadius) Destruction();
+		else {
+			if (useTimer) 
+			{
+				timer -= Time.deltaTime;
+				if (timer<=0) {
+					timer = 0;
+					useTimer = false;
+					Destruction();
+				}
+			}
+		}
 	}
 
 	virtual public void Recreate() 
@@ -111,5 +121,10 @@ public class Destructible : MonoBehaviour {
 		pooling = usePooling;
 		Recreate();
 	}
-		
+
+	public void UseTimer (float t) 
+	{
+		if (t == 0) {useTimer = false; timer = 0;}
+		else {useTimer = true; timer = t;}
+	}
 }

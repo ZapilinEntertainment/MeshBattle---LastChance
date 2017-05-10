@@ -5,6 +5,7 @@ using UnityEngine;
 public static class GameMaster {
 	public static bool pause;
 	public static float mapRadius = 25000;
+	public static int frigatesLimit = 100;
 	public static Camera cam;
 
 	public static PoolMaster pool;
