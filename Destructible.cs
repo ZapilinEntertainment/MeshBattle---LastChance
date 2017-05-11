@@ -73,7 +73,7 @@ public class Destructible : MonoBehaviour {
 		gameObject.SetActive(true);
 	}
 		
-	virtual public void Destruction () 
+	virtual public void Destruction () // doubled in Unit
 	{
 		if (destroyed) return; else destroyed=true;
 		if (myRenderers) myRenderers.SetActive(false);
@@ -81,7 +81,8 @@ public class Destructible : MonoBehaviour {
 			MeshRenderer mr = GetComponent<MeshRenderer>();
 			if (mr != null) mr.enabled = false;
 		}
-		if (mainCollider != null) GameMaster.pool.DestructionAt (mainCollider);
+		if (mainCollider.size.magnitude > 10) GameMaster.pool.DestructionAt (mainCollider, Vector3.zero);
+		else GameMaster.pool.PiecesAt(transform.position, (int)mainCollider.size.magnitude);
 		mainCollider.enabled = false;
 
 		if (!pooling) Destroy(gameObject); else 

@@ -8,6 +8,7 @@ public class PoolMaster : MonoBehaviour
 	const int WRECK_BLOCK_SCALE = 1;
 	const float WRECK_MASS_COEFFICIENT = 0.1f;
 	const float WRECK_SPAWN_CHANCE = 0.3f;
+	const float WRECK_TIME = 60;
 
 	int lastForcedWreck = 0;
 	GameObject wreckPrefab;
@@ -19,8 +20,9 @@ public class PoolMaster : MonoBehaviour
 		GameMaster.pool = this;
 		explosionEmitter = Instantiate (Resources.Load<ParticleSystem>("Prefs/explosion")) as ParticleSystem;
 		wreckPrefab = Instantiate (Resources.Load<GameObject>("Prefs/wreckBlock")) as GameObject;
-
 		wrecks = new Destructible[WRECKS_MAX_COUNT];
+		wrecks[0] = wreckPrefab.GetComponent<Destructible>();
+		wreckPrefab.SetActive(false);
 	}
 
 	public void ExplosionAt(Vector3 position, int size) 
@@ -31,7 +33,7 @@ public class PoolMaster : MonoBehaviour
 
 	public void PiecesAt (Vector3 position, int size) {}
 		
-	public void DestructionAt (BoxCollider collider) 
+	public void DestructionAt (BoxCollider collider, Vector3 speed) 
 	{
 		Vector3 pos = collider.transform.position;
 		float mgn = collider.size.magnitude;
@@ -46,14 +48,14 @@ public class PoolMaster : MonoBehaviour
 		for (i  = 0; i < a; i++) {
 			for ( j = 0 ; j< b; j++) {
 				for (k = 0; k<c;k++) {
-					if (UnityEngine.Random.value < WRECK_SPAWN_CHANCE) WreckAt(pos + new Vector3(i - a/2, j - b/2, k - c/2) * WRECK_BLOCK_SCALE) ;
+					if (UnityEngine.Random.value < WRECK_SPAWN_CHANCE) WreckAt(pos + new Vector3(i - a/2, j - b/2, k - c/2) * WRECK_BLOCK_SCALE, speed) ;
 				}
 			}
 		}
 			
 		}
 
-	private void WreckAt( Vector3 pos) {
+	private void WreckAt( Vector3 pos, Vector3 vel) {
 		int searchedIndex = -1;
 		Destructible d = null;
 		for (int i = 0; i < wrecks.Length; i++)
@@ -62,9 +64,11 @@ public class PoolMaster : MonoBehaviour
 				GameObject wreck = Instantiate (wreckPrefab, pos, Quaternion.identity) as GameObject;
 				wreck.name = "wreck"+i.ToString();
 				wreck.transform.localScale = Vector3.one * WRECK_BLOCK_SCALE;
-				//wreck.GetComponent<Rigidbody>().mass = WRECK_BLOCK_SCALE*WRECK_BLOCK_SCALE*WRECK_BLOCK_SCALE * WRECK_MASS_COEFFICIENT;
+				wreck.GetComponent<Rigidbody>().velocity = UnityEngine.Random.onUnitSphere + vel;
 				 d = 	wreck.GetComponent <Destructible>();
+				d.UseTimer(WRECK_TIME+ UnityEngine.Random.value*5);
 				wrecks[i] = d;
+				d.SetPooling(true);
 				searchedIndex = i;
 				break;
 			}
@@ -87,6 +91,7 @@ public class PoolMaster : MonoBehaviour
 			if (lastForcedWreck >= wrecks.Length) lastForcedWreck = 0;
 			d.Recreate();
 		}
+		wrecks[searchedIndex].transform.parent = null;
 		wrecks[searchedIndex].transform.position = pos;
 	}
 	}

@@ -11,6 +11,7 @@ public enum WeaponType {
 public class Weapon : MonoBehaviour {
 
 	const float MIN_ANGLE_FOR_FIRE = 1;
+	const float REFRESH_TICK = 3;
 
 	public Transform[] guns;
 	public MaterialPurpose raysMaterialType;
@@ -34,6 +35,7 @@ public class Weapon : MonoBehaviour {
 	bool working = false;
 	float firingTimeLeft = 0;
 	float reloadingTimeLeft = 0;
+	float updatingEnemy = 0;
 	public Destructible target;
 	Controller myController;
 
@@ -101,6 +103,7 @@ public class Weapon : MonoBehaviour {
 			if (myController != null) {myController.AddWeapon(this);working = true;}
 			return;
 		}
+			
 
 		if (target != null) 
 		{
@@ -108,7 +111,13 @@ public class Weapon : MonoBehaviour {
 		}
 		else 
 		{
-			if (authomatic&&ready) target = myController.GetEnemy(this);
+			if (authomatic&&ready) {
+				updatingEnemy -= Time.deltaTime;
+				if (updatingEnemy <= 0) {
+					updatingEnemy = REFRESH_TICK;
+					target = myController.GetEnemy(this);
+				}
+			}
 		}
 
 		float t = Time.deltaTime;

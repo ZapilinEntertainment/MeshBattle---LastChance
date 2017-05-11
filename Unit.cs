@@ -64,17 +64,21 @@ public class Unit : Destructible {
 	{
 		if (destroyed) return; else destroyed=true;
 		if (myRenderers) myRenderers.SetActive(false);
+
+
+		if (mainCollider.size.magnitude > 10) GameMaster.pool.DestructionAt (mainCollider, transform.TransformDirection(Vector3.forward* speed));
+		else GameMaster.pool.PiecesAt(transform.position, (int)mainCollider.size.magnitude);
+
 		transform.position = Vector3.zero;
 		speed = 0;
 		speedGoal = 0;
 		rotateTo = transform.rotation;
 
-		if (mainCollider != null) GameMaster.pool.DestructionAt (mainCollider);
-		if (!pooling) Destroy(gameObject); else gameObject.SetActive(false);
+		if (!pooling) Destroy(gameObject); else {transform.position = Vector3.zero;gameObject.SetActive(false);}
 	}
 		
 
-	private void MoveTo(Vector3 point) 
+	public void MoveTo(Vector3 point) 
 	{
 		Vector3 goalDirection = point - transform.position;
 		float distance = goalDirection.magnitude;
@@ -86,6 +90,7 @@ public class Unit : Destructible {
 	    }
 		else speedGoal = 0;
 	}
-		
+
+	public void RotateTo (Quaternion q) {rotateTo = q;}
 		
 }
