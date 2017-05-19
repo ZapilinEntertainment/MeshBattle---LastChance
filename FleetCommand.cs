@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class FleetCommand : MonoBehaviour {
 	const float SCAN_TICK = 1;
-	const float SPAWN_RATIO = 10;
+	const float SPAWN_RATIO = 1;
 	const float GATES_RADIUS = 100;
 
 	int number;
@@ -22,8 +22,10 @@ public class FleetCommand : MonoBehaviour {
 
 	void Update() 
 	{
+		if (gates != null) {
 		tspawn -= Time.deltaTime;
 		if (tspawn <= 0) {SpawnFrigate(); tspawn = SPAWN_RATIO;}
+		}
 
 		t -= Time.deltaTime;
 		if (t <= 0) {Scan(); t= SCAN_TICK;}

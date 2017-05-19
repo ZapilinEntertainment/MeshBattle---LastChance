@@ -6,37 +6,42 @@ public class TestCam : MonoBehaviour {
 
 	public float moveSpeed=5;
 	public float rotationSpeed=5;
+	public Transform bindObject;
+	Vector3 deltaPos;
 
 	void Awake () 
 	{
 		GameMaster.cam = GetComponent<Camera>();
+		if (bindObject) deltaPos = transform.position - bindObject.position;
 	}
 	// Update is called once per frame
-	void Update () {
-		float angle = Input.GetAxis("Mouse X");
-		if (angle != 0) 
-		{
-			transform.Rotate(Vector3.up*angle*rotationSpeed*Time.deltaTime,Space.World);
+	void LateUpdate () {
+
+		if (bindObject) transform.position = bindObject.position + deltaPos;
+
+		if (Input.GetMouseButton(1)) {
+			float angle = Input.GetAxis("Mouse X");
+			if (angle != 0) 
+			{
+				transform.Rotate(Vector3.up*angle*rotationSpeed*Time.deltaTime,Space.World);
+			}
+			angle = Input.GetAxis("Mouse Y");
+			if (angle != 0) 
+			{
+				transform.Rotate(Vector3.left*angle*rotationSpeed*Time.deltaTime,Space.Self);
+			}
 		}
-		angle = Input.GetAxis("Mouse Y");
-		if (angle != 0) 
-		{
-			transform.Rotate(Vector3.left*angle*rotationSpeed*Time.deltaTime,Space.Self);
+		else {
+			if (Input.GetMouseButton(2)) {
+				Vector3 movement = new Vector3( -Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0);
+				transform.Translate(movement*moveSpeed*Time.deltaTime, Space.Self);
+			}
 		}
 
-		Vector3 movement = new Vector3(Input.GetAxis("Horizontal"),0,Input.GetAxis("Vertical"));
-		if (movement != Vector3.zero)
-		{
-			transform.Translate(movement*moveSpeed*Time.deltaTime, Space.Self);
-		}
-		if (Input.GetKey(KeyCode.Space))
-		{
-			transform.Translate(Vector3.up*moveSpeed*Time.deltaTime,Space.World);
-		}
-		if (Input.GetKey(KeyCode.LeftShift))
-		{
-			transform.Translate(Vector3.down*moveSpeed*Time.deltaTime,Space.World);
-		}
+		float msw = Input.GetAxis("Mouse ScrollWheel") * 30;
+		if (msw != 0) transform.Translate(Vector3.forward*msw*moveSpeed*Time.deltaTime, Space.Self);
+
+		if (bindObject) deltaPos = transform.position - bindObject.position;
 
 		if (Input.GetMouseButtonDown(0))
 		{

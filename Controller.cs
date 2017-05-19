@@ -3,27 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Controller : MonoBehaviour {
-	const float SCAN_TICK = 1;
-	const float TARGET_UPDATE_TICK = 10;
+	protected const float SCAN_TICK = 1;
 
 	public List<Transform> enemies;
-	public float scanRadius = 0;
-	WeaponType mainWeaponType;
-	float[] range, totalDPS;
-	public bool periodicScan = false;
+	public float scanRadius = 10000;
+	public WeaponType mainWeaponType;
+	protected float attackRange;
+	protected bool periodicScan = false;
 
-	float t, targUpdate;
-	FleetCommand myFleetCommand;
-	Transform mainTarget;
-	Unit unitScript;
-	List<Weapon> weapons;
+	protected float t;
+	protected FleetCommand myFleetCommand;
+	protected Unit unitScript;
+	protected List<Weapon> weapons;
 
 
 	void Awake () {
+		attackRange = scanRadius;
 		enemies = new List<Transform>();
-		range = new float[GameMaster.weaponsTypeCount];
-		for (int i = 0; i < range.Length; i++) range[i]=10000;
-		totalDPS = new float[range.Length];
 		unitScript = GetComponent<Unit>();
 	}
 		
@@ -39,21 +35,6 @@ public class Controller : MonoBehaviour {
 				enemies = myFleetCommand.GetEnemiesInRadius(transform.position, scanRadius);
 			}
 		}
-
-		if (myFleetCommand != null) {
-			targUpdate -= Time.deltaTime;
-			if (targUpdate <= 0) {
-				targUpdate = TARGET_UPDATE_TICK;
-				Destructible d = myFleetCommand.GetEnemy(transform, range[(int)mainWeaponType],true);
-				if (d != null) mainTarget = d.transform;
-			}
-		}
-
-		if (mainTarget !=null) {
-			float dist = Vector3.Distance(transform.position, mainTarget.position);
-			if (dist < range[(int)mainWeaponType]) unitScript.RotateTo(Quaternion.FromToRotation(transform.forward, mainTarget.forward));
-			else unitScript.MoveTo(mainTarget.position);
-		}
 	}
 
 	public void AddWeapon(Weapon w) 
@@ -62,25 +43,14 @@ public class Controller : MonoBehaviour {
 			weapons = new List<Weapon>();
 		}
 		weapons.Add(w);
-		if (w.maxDistance < range[(int)w.weaponType]) range[(int)w.weaponType] = w.maxDistance;
-		totalDPS[(int)w.weaponType] += w.damagePerSecond * w.guns.Length;
-
-		float max = 0;
-		for (int i =0 ; i < totalDPS.Length; i++) {
-			if (totalDPS[i] > max) 
-			{
-				max = totalDPS[i];
-				mainWeaponType = (WeaponType)i;
-			}
-		}
+		if (w.weaponType == mainWeaponType && w.maxDistance < attackRange) attackRange = w.maxDistance;
 		if (w.weaponType == WeaponType.Autogun) periodicScan = true;
-		GetComponent<Unit>().speedGoal = 10;
 	}
 
 	public Destructible GetEnemy(Weapon w)
 	{
 		if (enemies == null || enemies.Count == 0) return null;
-		Vector3 weaponPosition = w.guns[w.centralPos].position;
+		Vector3 weaponPosition = w.transform.position;
 		Vector3 weaponDirection = transform.TransformDirection(w.weaponDirection);
 		float dist = 0;
 		float angle = 0;
@@ -115,10 +85,5 @@ public class Controller : MonoBehaviour {
 	{
 		myFleetCommand = fc;
 	}
-
-	public WeaponType GetMainWeaponType() {return mainWeaponType;}
-
-	public float GetAttackRadius() {
-		return range[(int)mainWeaponType];
-	}
+		
 }

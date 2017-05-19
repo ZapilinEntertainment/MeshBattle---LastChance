@@ -10,10 +10,11 @@ public enum WeaponType {
 
 public class Weapon : MonoBehaviour {
 
-	const float MIN_ANGLE_FOR_FIRE = 1;
-	const float REFRESH_TICK = 3;
+	protected const float MIN_ANGLE_FOR_FIRE = 1;
+	protected const float REFRESH_TICK = 3;
 
 	public Transform[] guns;
+	public float trunkLength = 0; 
 	public MaterialPurpose raysMaterialType;
 	public SpritePurpose startSpriteType;
 	public WeaponType weaponType;
@@ -24,35 +25,31 @@ public class Weapon : MonoBehaviour {
 	public int penetration;
 	public float pointingSpeed;
 	public float shotTime;
-
-	public int centralPos;
 	public Vector3 weaponDirection;
+	Vector3 pointingVector;
 
-	bool firing = false;
-	bool ready = true;
-	bool allGunsPrepared = true;
-	bool authomatic = false;
-	bool working = false;
-	float firingTimeLeft = 0;
-	float reloadingTimeLeft = 0;
-	float updatingEnemy = 0;
+	protected bool firing = false;
+	protected bool ready = true;
+	protected bool allGunsPrepared = true;
+	protected bool authomatic = false;
+	protected bool working = false;
+	protected float firingTimeLeft = 0;
+	protected float reloadingTimeLeft = 0;
+	protected float updatingEnemy = 0;
 	public Destructible target;
-	Controller myController;
+	protected Controller myController;
 
-	Vector3[] startDirections;
-	LineRenderer[] rays;
-	GameObject[] startSplashes;
-	GameObject[] endSplashes;
+	protected LineRenderer[] rays;
+	protected GameObject[] startSplashes;
+	protected GameObject[] endSplashes;
 
 	void Awake() 
 	{
 		int count = guns.Length;
 		if (count == 0) 	{Destroy(this);return;}
-		centralPos = guns.Length/2;
-		weaponDirection = guns[centralPos].forward;
+		Calibrate();
 
 		if (weaponType == WeaponType.Autogun) authomatic = true;
-		startDirections = new Vector3[count];
 		rays = new LineRenderer[count];
 		startSplashes = new GameObject[count];
 		endSplashes = new GameObject[count];
@@ -62,8 +59,6 @@ public class Weapon : MonoBehaviour {
 
 		for (int i = 0; i < count; i++)
 		{
-				startDirections[i] = transform.InverseTransformDirection(guns[i].transform.forward);
-
 				rays[i] = guns[i].gameObject.AddComponent<LineRenderer>();
 				rays[i].material = raysMaterial;
 				rays[i].startWidth = damagePerSecond/15;
@@ -73,7 +68,7 @@ public class Weapon : MonoBehaviour {
 
 				startSplashes[i] =new GameObject("startSplash");
 				startSplashes[i].transform.parent = guns[i].transform;
-				startSplashes[i].transform.localPosition = Vector3.zero;
+				startSplashes[i].transform.localPosition = Vector3.forward * trunkLength;
 				SpriteRenderer sr = startSplashes[i].AddComponent<SpriteRenderer>();
 				sr.sprite = startSprite;
 				SpriteController sc = startSplashes[i].AddComponent<SpriteController>();
@@ -91,8 +86,12 @@ public class Weapon : MonoBehaviour {
 				startSplashes[i].SetActive(false);
 				endSplashes[i].SetActive(false);
 		}
+	}
 
-
+	protected virtual void Calibrate() {
+		if (weaponDirection == Vector3.zero) weaponDirection = transform.root.InverseTransformDirection(guns[guns.Length/2].forward);
+		pointingVector = transform.root.TransformDirection(weaponDirection);
+		foreach (Transform gun in guns) gun.transform.forward = pointingVector;
 	}
 
 	void Update() 
@@ -104,13 +103,13 @@ public class Weapon : MonoBehaviour {
 			return;
 		}
 			
-
 		if (target != null) 
 		{
-			if (!target.gameObject.activeSelf) {target = null; firing = false;}
+			if (!target.gameObject.activeSelf) StopGuns();
 		}
 		else 
 		{
+			if (firing) StopGuns();
 			if (authomatic&&ready) {
 				updatingEnemy -= Time.deltaTime;
 				if (updatingEnemy <= 0) {
@@ -128,24 +127,19 @@ public class Weapon : MonoBehaviour {
 			if (firingTimeLeft > 0)
 			{
 				firingTimeLeft -= t;
-				if (firingTimeLeft <=0) {firing = false;target = null;}
+				if (firingTimeLeft <=0) StopGuns();
 			}
 
+			if (target != null) PointGunsOnDirection(target.transform.position - transform.position, t);
 			RaycastHit rh;
 			for (i = 0; i < guns.Length; i++)
 			{				
-				rays[i].SetPosition(0, guns[i].position);
+				rays[i].SetPosition(0, guns[i].position + guns[i].forward * trunkLength);
 
 				Destructible d = null;
-				if (Physics.Raycast(guns[i].position, guns[i].forward, out rh, maxDistance))
+				if (Physics.Raycast(guns[i].position + guns[i].forward * trunkLength, guns[i].forward , out rh, maxDistance))
 				{
 					d	= rh.collider.GetComponent<Destructible>();
-				}
-	
-				if (target == null) GunToStartPos(i,t);
-				else 
-				{
-					if (d == null || d != target) PointGunOnObject(i, target.transform, t);
 				}
 
 				Vector3 endPoint;
@@ -163,26 +157,13 @@ public class Weapon : MonoBehaviour {
 		{
 			if (target != null) //GUNS POINTING ON TARGET
 			{
-				for (i = 0; i< guns.Length; i++)
-				{
-					PointGunOnObject(i, target.transform, t);
-				}
-				if (Vector3.Angle (guns[centralPos].forward, target.transform.position - guns[centralPos].position) < MIN_ANGLE_FOR_FIRE)
-				{
-					ActivateGuns();
-				}
+				if (PointGunsOnDirection(target.transform.position - transform.position, t) == true)		ActivateGuns();
 			}
 			else
 			{  //GUNS AFTER FIRE
 				if (reloadingTimeLeft <=0) // for one-shot events where shot time is zero
 				{
-					for (i = 0; i < guns.Length; i++)
-					{
-						rays[i].enabled = false;
-						startSplashes[i].SetActive(false);
-						endSplashes[i].SetActive(false);
-					}
-					reloadingTimeLeft = reloadTime;
+					StopGuns();
 				}
 				else 
 				{
@@ -193,18 +174,9 @@ public class Weapon : MonoBehaviour {
 						target = null;
 					}
 				}
-				if (!allGunsPrepared) 
-				{
-					int c = 0;
-					for (i = 0; i< guns.Length; i++) 
-					{
-						if (GunToStartPos(i, t) == true) c++;
-					}
-					if (c == guns.Length) allGunsPrepared = true;
-				}
+				if (!allGunsPrepared) allGunsPrepared = PointGunsOnDirection(transform.root.TransformDirection(weaponDirection), t);
 			}
 		}
-
 	}
 
 	public void Fire (Destructible t) 
@@ -220,21 +192,13 @@ public class Weapon : MonoBehaviour {
 		else 	ActivateGuns();
 	}
 
-	private bool PointGunOnObject (int i, Transform obj, float time)
+	bool PointGunsOnDirection (Vector3 dir, float time)
 	{
-		Vector3 toPoint = Vector3.MoveTowards(guns[i].forward, obj.position - guns[i].position, pointingSpeed*time);
-		if (Vector3.Angle (transform.TransformDirection(startDirections[i]), toPoint) < maxAngle) guns[i].forward = toPoint;
-		if (Vector3.Angle (guns[i].forward, obj.position - guns[i].position) < MIN_ANGLE_FOR_FIRE) return true; else return false;
+		pointingVector = Vector3.RotateTowards(pointingVector, dir, pointingSpeed * time, pointingVector.magnitude );
+		foreach (Transform gun in guns) gun.forward = pointingVector;
+		if (Vector3.Angle (pointingVector, dir) < MIN_ANGLE_FOR_FIRE) return true; else return false;
 	}
 
-	private bool GunToStartPos (int i, float speed)
-	{
-		if (guns[i].forward == transform.TransformDirection(startDirections[i])) return true;
-		else {
-			guns[i].forward = Vector3.MoveTowards(guns[i].forward, transform.TransformDirection(startDirections[i]), speed);
-			return false;
-		}
-	}
 
 	public bool IsReady () {return ready;}
 
@@ -244,9 +208,9 @@ public class Weapon : MonoBehaviour {
 		Vector3 endPos;
 		for (int i =0; i < guns.Length; i++)
 		{
-			rays[i].SetPosition(0, guns[i].position);
+			rays[i].SetPosition(0, guns[i].position  + guns[i].forward * trunkLength );
 			RaycastHit rh;
-			if (Physics.Raycast(guns[i].transform.position, guns[i].transform.forward, out rh, maxDistance)) {
+			if (Physics.Raycast(guns[i].transform.position  + guns[i].forward * trunkLength, guns[i].transform.forward, out rh, maxDistance)) {
 				endPos = rh.point;
 			}
 			else endPos = guns[i].position + guns[i].forward * maxDistance;
@@ -265,6 +229,18 @@ public class Weapon : MonoBehaviour {
 		firing = true;
 		ready = false;
 		allGunsPrepared = false;
+	}
+
+	public void StopGuns() {
+		target = null;
+		firing = false;
+		for (int i = 0; i < guns.Length; i++)
+		{
+			rays[i].enabled = false;
+			startSplashes[i].SetActive(false);
+			endSplashes[i].SetActive(false);
+		}
+		reloadingTimeLeft = reloadTime;
 	}
 		
 }

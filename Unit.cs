@@ -7,15 +7,18 @@ public class Unit : Destructible {
 	public float MOVEMENT_ANGLE_LIMIT;
 	public float ANGLE_THRESHOLD;
 
-	public float speed = 0;
+	protected float speed = 0;
 	public float acceleration = 0.5f;
-	public float speedGoal = 0;
+	protected float speedGoal = 0;
 	public float maxSpeed = 10;
 	public float rotationSpeed = 25;
 	public bool usePooling = true;
-	Rigidbody rbody;
 
+	bool rotating = false;
+	Rigidbody rbody;
 	Quaternion rotateTo;
+	Vector3 rotatingVector = Vector3.zero;
+
 
 	void Awake () 
 	{
@@ -31,8 +34,15 @@ public class Unit : Destructible {
 		if (GameMaster.pause) return;
 
 		float t = Time.deltaTime;
-			
+
+		if (rotating) {
 		if (rotateTo != transform.rotation) transform.rotation = Quaternion.RotateTowards (transform.rotation, rotateTo, rotationSpeed*t);
+			else rotating = false;
+		}
+		else {
+			if (rotatingVector!= Vector3.zero) transform.Rotate(rotatingVector * rotationSpeed * t, Space.Self);
+		}
+
 		if (speedGoal > maxSpeed) speedGoal = maxSpeed; if (speedGoal < 0) speedGoal = 0;
 		if (speedGoal > speed) {
 			speed += acceleration * t;
@@ -44,8 +54,9 @@ public class Unit : Destructible {
 				if (speed < speedGoal) speed = speedGoal;
 			}
 		}
-			
-		if (speed>0) 	transform.Translate(Vector3.forward*speed*t);
+		if (speed>0) 	transform.Translate(transform.forward * speed * t, Space.World);
+
+
 		if (Vector3.Distance (transform.position, Vector3.zero) > GameMaster.mapRadius) Destruction();
 		else {
 			if (useTimer) 
@@ -60,7 +71,7 @@ public class Unit : Destructible {
 		}
 	}
 		
-	public void Destruction () 
+	public override void Destruction () 
 	{
 		if (destroyed) return; else destroyed=true;
 		if (myRenderers) myRenderers.SetActive(false);
@@ -90,7 +101,31 @@ public class Unit : Destructible {
 	    }
 		else speedGoal = 0;
 	}
+	public void SetSpeed(float t) {if (t < 0) t = 0; if (t > 1) t = 1; speedGoal = t * maxSpeed;}
 
-	public void RotateTo (Quaternion q) {rotateTo = q;}
-		
+	public void RotateTo (Quaternion q) 
+	{
+		rotatingVector = Vector3.zero;
+		rotateTo = q;
+		rotating = true;
+	}
+	public void SetRotateVector(Vector3 t) 
+	{
+		rotatingVector = t;
+	}
+	public void SetYRotation (float t) 
+	{
+		rotating = false;
+		rotatingVector.y = System.Math.Sign(t); 
+	}
+	public void SetXRotation( float t) {
+		rotating = false;
+		rotatingVector.x = System.Math.Sign(t);
+	}
+	public void SetZRotation( float t) {
+		rotating = false;
+		rotatingVector.z = System.Math.Sign(t);
+	}
+
+
 }

@@ -5,6 +5,7 @@ using UnityEngine;
 public class testBehaviour : MonoBehaviour {
 	public Transform gates1, gates2;
 	public GameObject frigatePref;
+	public Controller playerShip;
 
 	void Start () {
 		GameObject g = new GameObject("fleetCommand0");
@@ -18,6 +19,11 @@ public class testBehaviour : MonoBehaviour {
 		fc.gates = gates2;
 		fc.frigatePrefab = frigatePref;
 		GameMaster.AddFleetCommand(fc);
+
+		fc = g.AddComponent<FleetCommand>();
+		fc.SetNumber(2);
+		GameMaster.AddFleetCommand(fc);
+		playerShip.SetFleetCommand(fc);
 	}
 	
 

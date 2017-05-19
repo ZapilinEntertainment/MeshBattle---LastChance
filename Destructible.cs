@@ -128,4 +128,7 @@ public class Destructible : MonoBehaviour {
 		if (t == 0) {useTimer = false; timer = 0;}
 		else {useTimer = true; timer = t;}
 	}
+
+	public float GetHpPercentage () {return (hp/ maxHp) * 100;}
+	public float GetArmorPercentage () {return (armor/maxArmor) * 100;}
 }

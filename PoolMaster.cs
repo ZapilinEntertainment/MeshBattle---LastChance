@@ -13,15 +13,18 @@ public class PoolMaster : MonoBehaviour
 	int lastForcedWreck = 0;
 	GameObject wreckPrefab;
 	ParticleSystem explosionEmitter;
+	ParticleSystem piecesEmitter;
 	Destructible[] wrecks;
 
 	void Awake() 
 	{
 		GameMaster.pool = this;
 		explosionEmitter = Instantiate (Resources.Load<ParticleSystem>("Prefs/explosion")) as ParticleSystem;
+		piecesEmitter =Instantiate (Resources.Load<ParticleSystem>("Prefs/pieces")) as ParticleSystem;
 		wreckPrefab = Instantiate (Resources.Load<GameObject>("Prefs/wreckBlock")) as GameObject;
 		wrecks = new Destructible[WRECKS_MAX_COUNT];
 		wrecks[0] = wreckPrefab.GetComponent<Destructible>();
+		wrecks[0].SetPooling (true);
 		wreckPrefab.SetActive(false);
 	}
 
@@ -31,7 +34,10 @@ public class PoolMaster : MonoBehaviour
 		explosionEmitter.Emit(size);
 	}
 
-	public void PiecesAt (Vector3 position, int size) {}
+	public void PiecesAt (Vector3 position, int size) {
+		piecesEmitter.transform.position = position;
+		piecesEmitter.Emit(size);
+	}
 		
 	public void DestructionAt (BoxCollider collider, Vector3 speed) 
 	{
