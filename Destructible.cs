@@ -12,7 +12,9 @@ public class Destructible : MonoBehaviour {
 	public float armorCoefficient;
 	protected bool destroyed;
 
-	public BoxCollider mainCollider;
+	public BoxCollider[] colliders;
+	[SerializeField]
+	protected float size = 1; //радиус сферы, в которую впишется объект
 	public GameObject myRenderers;
 	protected bool pooling;
 	protected bool useTimer = false;
@@ -37,7 +39,7 @@ public class Destructible : MonoBehaviour {
 
 	void Awake () 
 	{
-		if (mainCollider == null) mainCollider = GetComponent<BoxCollider>();
+		colliders = gameObject.GetComponents<BoxCollider>();
 		hp = maxHp;
 	}
 
@@ -69,7 +71,7 @@ public class Destructible : MonoBehaviour {
 			MeshRenderer mr = GetComponent<MeshRenderer>();
 			if (mr != null) mr.enabled = true;
 		}
-		mainCollider.enabled = true;
+		foreach (Collider c in colliders) c.enabled = true;
 		gameObject.SetActive(true);
 	}
 		
@@ -81,9 +83,12 @@ public class Destructible : MonoBehaviour {
 			MeshRenderer mr = GetComponent<MeshRenderer>();
 			if (mr != null) mr.enabled = false;
 		}
-		if (mainCollider.size.magnitude > 10) GameMaster.pool.DestructionAt (mainCollider, Vector3.zero);
-		else GameMaster.pool.PiecesAt(transform.position, (int)mainCollider.size.magnitude);
-		mainCollider.enabled = false;
+
+		foreach (BoxCollider c in colliders) {
+		if (c.size.magnitude > 10) GameMaster.pool.DestructionAt (c, Vector3.zero);
+		else GameMaster.pool.PiecesAt(transform.position, (int)c.size.magnitude);
+		c.enabled = false;
+		}
 
 		if (!pooling) Destroy(gameObject); else 
 		{
@@ -131,4 +136,5 @@ public class Destructible : MonoBehaviour {
 
 	public float GetHpPercentage () {return (hp/ maxHp) * 100;}
 	public float GetArmorPercentage () {return (armor/maxArmor) * 100;}
+	public float GetSize() {return size;}
 }

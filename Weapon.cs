@@ -45,6 +45,7 @@ public class Weapon : MonoBehaviour {
 
 	void Awake() 
 	{
+		working = false;
 		int count = guns.Length;
 		if (count == 0) 	{Destroy(this);return;}
 		Calibrate();
@@ -62,7 +63,7 @@ public class Weapon : MonoBehaviour {
 				rays[i] = guns[i].gameObject.AddComponent<LineRenderer>();
 				rays[i].material = raysMaterial;
 				rays[i].startWidth = damagePerSecond/15;
-				rays[i].numPositions = 2;
+				rays[i].positionCount = 2;
 				rays[i].receiveShadows = false;
 				rays[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
@@ -98,8 +99,13 @@ public class Weapon : MonoBehaviour {
 	{
 		if (GameMaster.pause ) return;
 		if (!working) {
+			//print ("searching for my Controller");
 			myController  = transform.root.gameObject.GetComponent<Controller>();
-			if (myController != null) {myController.AddWeapon(this);working = true;}
+			if (myController != null) 
+			{
+				myController.AddWeapon(this);
+				working = true;
+			}
 			return;
 		}
 			
@@ -109,10 +115,12 @@ public class Weapon : MonoBehaviour {
 		}
 		else 
 		{
+			//print ("I have no target");
 			if (firing) StopGuns();
-			if (authomatic&&ready) {
+			if (authomatic && ready) {
 				updatingEnemy -= Time.deltaTime;
 				if (updatingEnemy <= 0) {
+					//print("time to request a new target");
 					updatingEnemy = REFRESH_TICK;
 					target = myController.GetEnemy(this);
 				}
@@ -157,7 +165,7 @@ public class Weapon : MonoBehaviour {
 		{
 			if (target != null) //GUNS POINTING ON TARGET
 			{
-				if (PointGunsOnDirection(target.transform.position - transform.position, t) == true)		ActivateGuns();
+				if (PointGunsOnDirection(target.transform.position - transform.position, t) == true && Vector3.Distance(target.transform.position, transform.position) <= maxDistance)		ActivateGuns();
 			}
 			else
 			{  //GUNS AFTER FIRE
@@ -186,7 +194,7 @@ public class Weapon : MonoBehaviour {
 		if (t != null) 
 		{
 			Vector3 inpos = transform.InverseTransformPoint (t.transform.position);
-			if (inpos.z > 0 && Vector3.Angle(Vector3.forward, inpos) < maxAngle) target = t;
+			if (inpos.z > 0 && Vector3.Angle(Vector3.forward, inpos) < maxAngle && Vector3.Distance(transform.position, t.transform.position) <= maxDistance) target = t;
 			return;
 		}
 		else 	ActivateGuns();
@@ -242,5 +250,10 @@ public class Weapon : MonoBehaviour {
 		}
 		reloadingTimeLeft = reloadTime;
 	}
+
+	public void SetAuthomatic (bool x) {
+		//print ("authomatic set to "+x.ToString());
+		authomatic = x;
+	} 
 		
 }

@@ -6,6 +6,7 @@ public class testBehaviour : MonoBehaviour {
 	public Transform gates1, gates2;
 	public GameObject frigatePref;
 	public Controller playerShip;
+	public bool spawn = true;
 
 	void Start () {
 		GameObject g = new GameObject("fleetCommand0");
@@ -14,17 +15,21 @@ public class testBehaviour : MonoBehaviour {
 		fc.gates = gates1;
 		fc.frigatePrefab = frigatePref;
 		GameMaster.AddFleetCommand(fc);
+
+		g = new GameObject("fleetCommand1");
 		fc = g.AddComponent<FleetCommand>();
 		fc.SetNumber(1);
 		fc.gates = gates2;
 		fc.frigatePrefab = frigatePref;
 		GameMaster.AddFleetCommand(fc);
 
+		g = new GameObject("fleetCommand2");
 		fc = g.AddComponent<FleetCommand>();
 		fc.SetNumber(2);
 		GameMaster.AddFleetCommand(fc);
-		playerShip.SetFleetCommand(fc);
 	}
 	
-
+	void Update () {
+		if (GameMaster.spawn != spawn) GameMaster.spawn = spawn;
+	}
 }

@@ -7,9 +7,8 @@ public class Controller : MonoBehaviour {
 
 	public List<Transform> enemies;
 	public float scanRadius = 10000;
+	public float maxRange, minRange; //максимальная и минимальная дальность атаки
 	public WeaponType mainWeaponType;
-	protected float attackRange;
-	protected bool periodicScan = false;
 
 	protected float t;
 	protected FleetCommand myFleetCommand;
@@ -18,7 +17,7 @@ public class Controller : MonoBehaviour {
 
 
 	void Awake () {
-		attackRange = scanRadius;
+		minRange = scanRadius; maxRange = 0;
 		enemies = new List<Transform>();
 		unitScript = GetComponent<Unit>();
 	}
@@ -27,28 +26,30 @@ public class Controller : MonoBehaviour {
 	void Update () {
 		if (GameMaster.pause) return;
 
-		if (periodicScan && myFleetCommand != null)
+		if (maxRange!= 0 && myFleetCommand != null)
 		{
 			t -= Time.deltaTime;
 			if (t <= 0) {
 				t = SCAN_TICK;
-				enemies = myFleetCommand.GetEnemiesInRadius(transform.position, scanRadius);
+				enemies = myFleetCommand.GetEnemiesInRadius(transform.position, maxRange);
 			}
 		}
 	}
 
-	public void AddWeapon(Weapon w) 
+	public virtual void AddWeapon(Weapon w) //copy in BotController
 	{
 		if (weapons == null)  {
 			weapons = new List<Weapon>();
 		}
 		weapons.Add(w);
-		if (w.weaponType == mainWeaponType && w.maxDistance < attackRange) attackRange = w.maxDistance;
-		if (w.weaponType == WeaponType.Autogun) periodicScan = true;
+		float r = w.maxDistance;
+		if (r < minRange) minRange = r;
+		if (r > maxRange) maxRange = r;
 	}
 
 	public Destructible GetEnemy(Weapon w)
 	{
+		//print ("target request");
 		if (enemies == null || enemies.Count == 0) return null;
 		Vector3 weaponPosition = w.transform.position;
 		Vector3 weaponDirection = transform.TransformDirection(w.weaponDirection);
@@ -84,6 +85,7 @@ public class Controller : MonoBehaviour {
 	public void SetFleetCommand(FleetCommand fc) 
 	{
 		myFleetCommand = fc;
+		gameObject.tag = "Command" + fc.GetNumber().ToString();
 	}
 		
 }

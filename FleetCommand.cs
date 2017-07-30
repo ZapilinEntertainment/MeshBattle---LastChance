@@ -16,19 +16,30 @@ public class FleetCommand : MonoBehaviour {
 	public Transform gates;
 	float t , tspawn;
 
-	void Awake() {
+	void Start() {
+		Scan();
 		frigates = new GameObject[GameMaster.frigatesLimit];
+		GameObject[] myShips = GameObject.FindGameObjectsWithTag("Command"+number.ToString());
+		Controller c;
+		foreach (GameObject g in myShips) {
+			c = g.GetComponent<Controller>();
+			if (c != null) {
+				c.SetFleetCommand(this);
+			}
+		}
 	}
 
 	void Update() 
 	{
+		if (GameMaster.spawn) {
 		if (gates != null) {
 		tspawn -= Time.deltaTime;
 		if (tspawn <= 0) {SpawnFrigate(); tspawn = SPAWN_RATIO;}
 		}
+		}
 
 		t -= Time.deltaTime;
-		if (t <= 0) {Scan(); t= SCAN_TICK;}
+		if (t <= 0) Scan();
 	}
 
 	public List<Transform> GetEnemiesInRadius(Vector3 pos, float radius) 
@@ -42,6 +53,7 @@ public class FleetCommand : MonoBehaviour {
 
 	public Destructible GetEnemy(Transform ship, float radius, bool useSideGuns)
 	{
+		if (enemies.Count == 0) return null;
 		float dist = 0;
 		float angle = 0;
 		float minDist = radius;
@@ -102,6 +114,7 @@ public class FleetCommand : MonoBehaviour {
 
 	protected void Scan() 
 	{
+		t = SCAN_TICK;
 		if (enemies == null) enemies = new List<Transform>();
 		else enemies.Clear();
 		shipsCount = 0;
@@ -130,12 +143,13 @@ public class FleetCommand : MonoBehaviour {
 		number = x;
 		gameObject.tag = "Command"+x.ToString();
 	}
+	public int GetNumber () {return number;}
 
 	void SpawnFrigate() 
 	{
 		if (shipsCount >= GameMaster.frigatesLimit) return;
 		int trials = 5;
-		float size = frigatePrefab.GetComponent<Destructible>().mainCollider.size.magnitude;
+		float size = frigatePrefab.GetComponent<Destructible>().GetSize();
 		bool spawnAccepted = false;
 		Collider[] cds;
 		Vector3 spawnPos = gates.position;

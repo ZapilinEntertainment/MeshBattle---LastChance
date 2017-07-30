@@ -4,12 +4,14 @@ using UnityEngine;
 
 public class Storage : MonoBehaviour {
 
+	GUISkin defSkin, nbSkin;
 	Material[] materials;
 	Sprite[] spritePrefs;
 
 	void Awake () 
 	{
 		GameMaster.storage = this;
+		GameMaster.weaponsTypeCount = System.Enum.GetNames(typeof(WeaponType)).Length;
 
 		//                  MATERIALS loading
 		int count = System.Enum.GetNames(typeof (MaterialPurpose)).Length;
@@ -30,6 +32,9 @@ public class Storage : MonoBehaviour {
 			if (s == null) print ("storage error - sprite " + name + " not found!");
 			else 	spritePrefs[i] = s;
 		}
+			
+		defSkin = Resources.Load<GUISkin>("GUI/defSkin");
+		nbSkin = Resources.Load<GUISkin>("GUI/noBorderSkin");
 	}
 		
 
@@ -45,6 +50,9 @@ public class Storage : MonoBehaviour {
 		if (s == null) s= spritePrefs[(int)SpritePurpose.error_sprite];
 		return s;
 	}
+
+	public GUISkin GetDefaultSkin() {return defSkin;}
+	public GUISkin GetNBSkin() {return nbSkin;}
 		
 }
 
