@@ -20,6 +20,8 @@ public class Weapon : MonoBehaviour {
 	public WeaponType weaponType;
 	public float maxDistance;
 	public float maxAngle;
+	public byte firingZones = 51; // 2(6) 1(5)     -  1-4 is upper hemisphere, 5 - 8 is bottom, decart system of coordinates
+													  //  3(7) 4(8)
 	public float reloadTime;
 	public float damagePerSecond;
 	public int penetration;
@@ -97,7 +99,7 @@ public class Weapon : MonoBehaviour {
 
 	void Update() 
 	{
-		if (GameMaster.pause ) return;
+		if (GameMaster.IsPaused() ) return;
 		if (!working) {
 			//print ("searching for my Controller");
 			myController  = transform.root.gameObject.GetComponent<Controller>();
@@ -109,9 +111,10 @@ public class Weapon : MonoBehaviour {
 			return;
 		}
 			
+
 		if (target != null) 
 		{
-			if (!target.gameObject.activeSelf) StopGuns();
+			if (!target.gameObject.activeSelf || !InRange(target.transform.position)) {StopGuns();}
 		}
 		else 
 		{
@@ -132,13 +135,15 @@ public class Weapon : MonoBehaviour {
 
 		if (firing) 
 		{
+			
 			if (firingTimeLeft > 0)
 			{
 				firingTimeLeft -= t;
 				if (firingTimeLeft <=0) StopGuns();
 			}
 
-			if (target != null) PointGunsOnDirection(target.transform.position - transform.position, t);
+			if (target != null && InRange(target.transform.position)) PointGunsOnDirection(target.transform.position - transform.position, t);
+
 			RaycastHit rh;
 			for (i = 0; i < guns.Length; i++)
 			{				
@@ -189,15 +194,7 @@ public class Weapon : MonoBehaviour {
 
 	public void Fire (Destructible t) 
 	{
-		if (!ready) return;
-
-		if (t != null) 
-		{
-			Vector3 inpos = transform.InverseTransformPoint (t.transform.position);
-			if (inpos.z > 0 && Vector3.Angle(Vector3.forward, inpos) < maxAngle && Vector3.Distance(transform.position, t.transform.position) <= maxDistance) target = t;
-			return;
-		}
-		else 	ActivateGuns();
+		if (ready && t != null && InRange(t.transform.position)) target = t;
 	}
 
 	bool PointGunsOnDirection (Vector3 dir, float time)
@@ -255,5 +252,34 @@ public class Weapon : MonoBehaviour {
 		//print ("authomatic set to "+x.ToString());
 		authomatic = x;
 	} 
+
+	public bool InRange (Vector3 pos) 
+	{
+		Vector3 inpos = transform.root.InverseTransformPoint(pos);
+		if (inpos.magnitude > maxDistance) return false;
+		byte zone = 0;
+		if (inpos.y > 0) {
+			if (inpos.x >= 0) {
+				if (inpos.z >= 0) zone = 1;
+				else zone = 8;
+			}
+			else {
+				if (inpos.z >= 0) zone = 2;
+				else zone = 4;
+			}
+		}
+		else {
+			if (inpos.x >= 0) {
+				if (inpos.z >= 0) zone = 16;
+				else zone = 128;
+			}
+			else {
+				if (inpos.z >= 0) zone = 32;
+				else zone = 64;
+			}
+		}
+		if ((firingZones & zone) == 0) return false;
+		if (Vector3.Angle(weaponDirection, inpos) <= maxAngle) return true; else return false;
+	}
 		
 }

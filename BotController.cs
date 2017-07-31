@@ -12,7 +12,7 @@ public class BotController : Controller {
 
 
 	void Update () {
-		if (GameMaster.pause) return;
+		if (GameMaster.IsPaused()) return;
 
 		if (myFleetCommand != null) {
 			if (maxRange != 0 )

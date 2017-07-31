@@ -56,7 +56,7 @@ public class PlayerController : Controller {
 	}
 
 	void Update () {
-		if (GameMaster.pause) return;
+		if (GameMaster.IsPaused()) return;
 
 		if (maxRange != 0 && myFleetCommand != null)
 		{

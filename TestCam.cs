@@ -16,7 +16,7 @@ public class TestCam : MonoBehaviour {
 	}
 	// Update is called once per frame
 	void LateUpdate () {
-
+		if (GameMaster.IsPaused()) return;
 		if (bindObject) transform.position = bindObject.position + deltaPos;
 
 		if (Input.GetMouseButton(1)) {

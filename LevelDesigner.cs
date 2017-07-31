@@ -12,6 +12,7 @@ public class LevelDesigner : MonoBehaviour {
 	public int maxSatellitesCount = 10;
 	public GameObject block;
 	public Material crystalMaterial;
+	public GameObject[] crystalPoints;
 	Light mainSun;
 
 	Transform crystalSun;
@@ -65,12 +66,18 @@ public class LevelDesigner : MonoBehaviour {
 			}
 			satellitesRotation = Random.onUnitSphere;
 			break;
+		case 1:
+			if (crystalPoints.Length == 0) {print ("no crystal points, desu"); return;}
+			foreach (GameObject g in crystalPoints) {
+				CreateCrystalOnObject(4+Random.value*8, g);
+			}
+			break;
 		}
 			
 	}
 
 	void Update () {
-		if (GameMaster.pause) return;
+		if (GameMaster.IsPaused() || designNumber != 0) return;
 		crystalSun.Rotate(mainCrystalRotation * Time.deltaTime);
 		if (satellites.Length!=0) {
 			foreach (GameObject t in satellites) {
@@ -225,6 +232,17 @@ public class LevelDesigner : MonoBehaviour {
 
 
 		return m;
+	}
+
+
+	public void CreateCrystalOnObject (float size, GameObject g) 
+	{
+		MeshRenderer mr = g.AddComponent<MeshRenderer>();
+		mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+		mr.receiveShadows = false;
+		MeshFilter mf= g.AddComponent<MeshFilter>();
+		mf.mesh = CreateCrystal(size, size/8f, size/20f);
+		mr.material = crystalMaterial;
 	}
 
 	GameObject CreateRing() {

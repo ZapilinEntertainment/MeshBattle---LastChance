@@ -45,7 +45,7 @@ public class Destructible : MonoBehaviour {
 
 	void Update () 
 	{
-		if (GameMaster.pause) return;
+		if (GameMaster.IsPaused()) return;
 		if (Vector3.Distance (transform.position, Vector3.zero) > GameMaster.mapRadius) Destruction();
 		else {
 			if (useTimer) 

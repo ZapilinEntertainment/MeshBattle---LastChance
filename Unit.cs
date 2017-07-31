@@ -35,7 +35,7 @@ public class Unit : Destructible {
 
 	void Update ()
 	{
-		if (GameMaster.pause) return;
+		if (GameMaster.IsPaused()) return;
 
 		float t = Time.deltaTime;
 		float rspeed = rotationSpeed * rotationSmoothCoefficient * t;

@@ -7,7 +7,7 @@ public class TowerWeapon : Weapon {
 	Vector3 gunStartDir;
 
 	protected override void Calibrate () {
-		weaponDirection = transform.root.InverseTransformDirection(transform.forward); 
+		if (weaponDirection == Vector3.zero) weaponDirection = transform.root.InverseTransformDirection(transform.forward); 
 		gunStartDir = transform.InverseTransformDirection(guns[0].forward);
 	}
 
@@ -49,7 +49,7 @@ public class TowerWeapon : Weapon {
 
 	void Update() 
 	{
-		if (GameMaster.pause ) return;
+		if (GameMaster.IsPaused() ) return;
 		if (!working) {
 			myController  = transform.root.gameObject.GetComponent<Controller>();
 			if (myController != null) {myController.AddWeapon(this);working = true;}
@@ -134,4 +134,5 @@ public class TowerWeapon : Weapon {
 			}
 		}
 	}
+		
 }

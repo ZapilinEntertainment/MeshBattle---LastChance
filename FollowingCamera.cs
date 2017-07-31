@@ -22,7 +22,7 @@ public class FollowingCamera : MonoBehaviour {
 	}
 	// Update is called once per frame
 	void LateUpdate () {
-		if (obj == null) return;
+		if (obj == null || GameMaster.IsPaused()) return;
 		//transform.position = obj.position + deltaPos;
 		float delta = 0;
 		if (Input.GetMouseButton(2)) {

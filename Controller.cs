@@ -24,7 +24,7 @@ public class Controller : MonoBehaviour {
 		
 
 	void Update () {
-		if (GameMaster.pause) return;
+		if (GameMaster.IsPaused()) return;
 
 		if (maxRange!= 0 && myFleetCommand != null)
 		{
@@ -60,6 +60,7 @@ public class Controller : MonoBehaviour {
 		Destructible target = null;
 			foreach (Transform t in enemies) 
 			{
+			if ( !w.InRange(t.position) ) continue;
 			angle = Vector3.Angle( weaponDirection, t.position - weaponPosition );
 			dist = Vector3.Distance (t.position, weaponPosition);
 				if (angle < minAngle) 

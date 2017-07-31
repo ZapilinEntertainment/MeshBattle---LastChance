@@ -5,7 +5,7 @@ using UnityEngine;
 
 
 public static class GameMaster {
-	public static bool pause;
+	static bool pause;
 	public static bool spawn;
 	public static float mapRadius = 25000;
 	public static int frigatesLimit = 100;
@@ -28,4 +28,14 @@ public static class GameMaster {
 	}
 
 	public static int GetFleetsCount() {return fnumber;}
+
+	public static bool IsPaused() {return pause;}
+	public static void SetPause (bool x) {
+		if (x) {pause = true; Time.timeScale = 1;}
+		else {pause = false; Time.timeScale = 0;}
+	}
+	public static void SetPause () {
+		if (!pause) {pause = true; Time.timeScale = 1;}
+		else {pause = false; Time.timeScale = 0;}
+	}
 }
