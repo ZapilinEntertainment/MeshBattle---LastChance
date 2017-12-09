@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class PlayerController : Controller {
 
+	Transform campoint;
 	public Camera myCam;
 	float angleBorder = 90;
 	public float camRotationSpeed = 300;
@@ -42,9 +43,13 @@ public class PlayerController : Controller {
 		pitchPos_tx= Resources.Load<Texture>("GUI/pitchPos"); pitchPosAct_tx = Resources.Load<Texture>("GUI/pitchPosAct");
 		pitchNeg_tx= Resources.Load<Texture>("GUI/pitchNeg"); pitchNegAct_tx = Resources.Load<Texture>("GUI/pitchNegAct");
 
+		campoint = transform.Find("cameraPoint");
 		if (myCam == null) 
 		 {
-			GameObject g = transform.Find("cameraPoint").gameObject;
+			GameObject g = new GameObject("shipCamera");
+			g.transform.parent = campoint;
+			g.transform.localPosition = new Vector3 (0, 5, -10);
+			g.transform.LookAt (campoint);
 			myCam = g.AddComponent<Camera>();
 			myCam.farClipPlane = 10000;
 			g.AddComponent<GUILayer>();
@@ -122,25 +127,32 @@ public class PlayerController : Controller {
 
 		if (Input.GetKeyDown("w")) SetSpeedMode(speedMode+1);
 		else if (Input.GetKeyDown("s")) SetSpeedMode(speedMode-1);
+	}
 
+	void LateUpdate() {
+		if (GameMaster.IsPaused()) return;
 		if (Input.GetKeyDown("f")) camFixed = !camFixed;
-		if (!camFixed) {
-			float delta = Input.GetAxis("Mouse X");
-			float crSpeed = camRotationSpeed * Time.deltaTime * camSmoothCoefficient;
-			bool newChanges = false;
-			if (delta != 0) {
-				myCam.transform.RotateAround(myCam.transform.position, transform.TransformDirection(Vector3.up) , crSpeed * delta);
-				if (viewWasChanged) camSmoothCoefficient += camSmoothAcceleration;
-				newChanges = true;
+		if (Input.GetMouseButton(2)) {
+			if (!camFixed) {
+				float delta = Input.GetAxis("Mouse X");
+				float crSpeed = camRotationSpeed * Time.deltaTime * camSmoothCoefficient;
+				bool newChanges = false;
+				if (delta != 0) {
+					campoint.Rotate( Vector3.up *crSpeed * delta);
+					if (viewWasChanged) camSmoothCoefficient += camSmoothAcceleration;
+					newChanges = true;
+				}
+				delta = Input.GetAxis ("Mouse Y") * (-1);
+				if (delta != 0) {
+					myCam.transform.RotateAround(campoint.position, myCam.transform.TransformDirection(Vector3.right) , crSpeed * delta);
+					if (viewWasChanged) camSmoothCoefficient += camSmoothAcceleration;
+					newChanges = true;
+				}
+				if (!newChanges) {camSmoothCoefficient = 0.1f;viewWasChanged = false;}
 			}
-			delta = Input.GetAxis ("Mouse Y") * (-1);
-			if (delta != 0) {
-				myCam.transform.Rotate(Vector3.right * crSpeed * delta, Space.Self);
-				if (viewWasChanged) camSmoothCoefficient += camSmoothAcceleration;
-				newChanges = true;
-			}
-			if (!newChanges) {camSmoothCoefficient = 0.1f;viewWasChanged = false;}
 		}
+		float zoomDelta = Input.GetAxis ("Mouse ScrollWheel");
+		if (zoomDelta != 0) {myCam.transform.Translate (Vector3.forward * zoomDelta * camRotationSpeed * Time.deltaTime, Space.Self);}
 	}
 
 	void SetSpeedMode(int x) {
